@@ -1,195 +1,41 @@
 /*******************************************************
- * CAREER TASK & HR TRACKER
- * Google Apps Script + Google Sheets + AppSheet
+ * SAURABH TASKMANAGER — ALL-IN-ONE GOOGLE APPS SCRIPT
+ * Sheets DB + Web App + reminders + calendar + SEO/AI workspace
  *******************************************************/
-
-const TZ = 'Asia/Kolkata';
-const TABLES = {
-  Tasks: ['Task ID','Date','Day','Month','Year','Task Type','Task Title','Company / Event','Contact Person','Email','Phone','LinkedIn URL','Location','Status','Priority','Deadline','Follow Up Date','Result','Response','Notes','Created At','Updated At'],
-  'HR Applications': ['Application ID','Application Date','Company','Job Role','Job Type','Experience','HR Name','HR Email','HR Phone','HR LinkedIn','Application Source','Job URL','Resume Sent','Cover Letter','Mail Sent','Mail Date','HR Response','Response Date','Interview Date','Interview Status','Result','Salary','Location','Follow Up Date','Next Action','Notes','Created At','Updated At'],
-  'LinkedIn Jobs': ['Job ID','Date Found','Company','Job Title','Location','Work Mode','Job Type','Experience','Salary','LinkedIn Job URL','Recruiter Name','Recruiter LinkedIn','Recruiter Email','Applied','Application Date','Application Status','HR Response','Interview Date','Result','Follow Up Date','Priority','Notes','Created At','Updated At'],
-  'HR Emails': ['Email ID','Date','Company','HR Name','HR Email','Job Role','Subject','Email Type','Email Status','Reply Received','Reply Date','Response','Follow Up Required','Follow Up Date','Next Action','Notes','Created At','Updated At'],
-  Events: ['Event ID','Event Date','Day','Month','Event Name','Organizer','Event Type','Role','Invitation','Registration','Acceptance','Attendance','Location','Start Time','End Time','Website','LinkedIn Event','Contact Person','Contact Email','Topic','Result','Follow Up','Follow Up Date','Notes','Created At','Updated At'],
-  Contacts: ['Contact ID','Name','Company','Designation','Email','Phone','LinkedIn URL','Contact Type','Last Contact','Next Follow Up','Relationship','Notes','Created At','Updated At']
+const TZ='Asia/Kolkata';
+const TABLES={
+ Tasks:['Task ID','Date','Day','Month','Year','Task Type','Task Title','Company / Event','Contact Person','Email','Phone','LinkedIn URL','Location','Status','Priority','Deadline','Follow Up Date','Result','Response','Notes','Created At','Updated At'],
+ 'HR Applications':['Application ID','Application Date','Company','Job Role','Job Type','Experience','HR Name','HR Email','HR Phone','HR LinkedIn','Application Source','Job URL','Resume Sent','Cover Letter','Mail Sent','Mail Date','HR Response','Response Date','Interview Date','Interview Status','Result','Salary','Location','Follow Up Date','Next Action','Notes','Created At','Updated At'],
+ 'LinkedIn Jobs':['Job ID','Date Found','Company','Job Title','Location','Work Mode','Job Type','Experience','Salary','LinkedIn Job URL','Recruiter Name','Recruiter LinkedIn','Recruiter Email','Applied','Application Date','Application Status','HR Response','Interview Date','Result','Follow Up Date','Priority','Notes','Created At','Updated At'],
+ 'HR Emails':['Email ID','Date','Company','HR Name','HR Email','Job Role','Subject','Email Type','Email Status','Reply Received','Reply Date','Response','Follow Up Required','Follow Up Date','Next Action','Notes','Created At','Updated At'],
+ Events:['Event ID','Event Date','Day','Month','Event Name','Organizer','Event Type','Role','Invitation','Registration','Acceptance','Attendance','Location','Start Time','End Time','Website','LinkedIn Event','Contact Person','Contact Email','Topic','Result','Follow Up','Follow Up Date','Notes','Created At','Updated At'],
+ Contacts:['Contact ID','Name','Company','Designation','Email','Phone','LinkedIn URL','Contact Type','Last Contact','Next Follow Up','Relationship','Notes','Created At','Updated At']
 };
-
-function setupCareerTracker() {
-  const ss = SpreadsheetApp.getActive();
-  Object.keys(TABLES).forEach(name => createTable_(ss, name, TABLES[name]));
-  createSettings_(ss);
-  createDashboard_(ss);
-  setupValidations_(ss);
-  setupFormatting_(ss);
-  setupReminderTrigger_();
-  SpreadsheetApp.getUi().alert('Career Tracker created successfully. It is ready for AppSheet.');
-}
-
-function createTable_(ss, name, headers) {
-  let sh = ss.getSheetByName(name) || ss.insertSheet(name);
-  sh.clear();
-  sh.getRange(1,1,1,headers.length).setValues([headers]);
-  sh.setFrozenRows(1);
-  sh.getRange(1,1,1,headers.length).setFontWeight('bold');
-  sh.getRange(1,1,1,headers.length).createFilter();
-  sh.autoResizeColumns(1, headers.length);
-}
-
-function createSettings_(ss) {
-  const sh = ss.getSheetByName('Settings') || ss.insertSheet('Settings');
-  sh.clear();
-  const groups = [
-    ['TASK TYPES','HR Mail','Follow Up','Interview','Application','Event','Meeting','LinkedIn','Content','Other'],
-    ['STATUS','Pending','In Progress','Completed','Accepted','Rejected','Scheduled','Cancelled','Waiting','Shortlisted'],
-    ['PRIORITY','High','Medium','Low'],
-    ['RESULT','Selected','Rejected','Shortlisted','No Response','Attended','Missed','Completed','Pending'],
-    ['HR RESPONSE','Waiting','Received','Interested','Not Interested','Need Follow Up','No Reply','Declined'],
-    ['SOURCE','LinkedIn','Company Website','Naukri','Indeed','Referral','Email','Other'],
-    ['WORK MODE','Remote','Hybrid','Onsite'],
-    ['ATTENDANCE','Going','Not Going','Attended','Missed'],
-    ['ACCEPTANCE','Accepted','Rejected','Pending']
-  ];
-  groups.forEach((row,i) => sh.getRange(i+1,1,1,row.length).setValues([row]));
-  sh.setFrozenRows(1);
-}
-
-function createDashboard_(ss) {
-  const sh = ss.getSheetByName('Dashboard') || ss.insertSheet('Dashboard');
-  sh.clear();
-  sh.getRange('A1:F1').merge().setValue('CAREER + HR + LINKEDIN DASHBOARD').setFontSize(18).setFontWeight('bold');
-  sh.getRange('A3:B16').setValues([
-    ['Metric','Value'],
-    ['Total Tasks','=COUNTA(Tasks!A2:A)'],
-    ['Pending Tasks','=COUNTIF(Tasks!N2:N,"Pending")'],
-    ['Completed Tasks','=COUNTIF(Tasks!N2:N,"Completed")'],
-    ['HR Applications','=COUNTA(\'HR Applications\'!A2:A)'],
-    ['LinkedIn Jobs','=COUNTA(\'LinkedIn Jobs\'!A2:A)'],
-    ['LinkedIn Applied','=COUNTIF(\'LinkedIn Jobs\'!N2:N,"Yes")'],
-    ['Selected','=COUNTIF(\'HR Applications\'!U2:U,"Selected")'],
-    ['Rejected','=COUNTIF(\'HR Applications\'!U2:U,"Rejected")'],
-    ['Shortlisted','=COUNTIF(\'HR Applications\'!U2:U,"Shortlisted")'],
-    ['Events','=COUNTA(Events!A2:A)'],
-    ['Accepted Events','=COUNTIF(Events!K2:K,"Accepted")'],
-    ['Today Tasks','=COUNTIF(Tasks!B2:B,TODAY())'],
-    ['Today Follow-ups','=COUNTIF(Tasks!Q2:Q,TODAY())']
-  ]);
-  sh.getRange('D3:E10').setValues([
-    ['Today','Value'],['Date','=TODAY()'],['Day','=TEXT(TODAY(),"dddd")'],['Month','=TEXT(TODAY(),"mmmm")'],['Year','=YEAR(TODAY())'],['Overdue','=COUNTIFS(Tasks!P2:P,"<"&TODAY(),Tasks!N2:N,"<>Completed")'],['Due Follow-ups','=COUNTIFS(Tasks!Q2:Q,"<="&TODAY(),Tasks!N2:N,"<>Completed")'],['Waiting HR Replies','=COUNTIF(\'HR Applications\'!Q2:Q,"Waiting")']
-  ]);
-  sh.autoResizeColumns(1,6);
-}
-
-function setupValidations_(ss) {
-  const set = ss.getSheetByName('Settings');
-  const list = (range) => SpreadsheetApp.newDataValidation().requireValueInRange(range,true).setAllowInvalid(false).build();
-  const tasks = ss.getSheetByName('Tasks');
-  tasks.getRange('F2:F2000').setDataValidation(list(set.getRange('B1:J1')));
-  tasks.getRange('N2:N2000').setDataValidation(list(set.getRange('B2:J2')));
-  tasks.getRange('O2:O2000').setDataValidation(list(set.getRange('B3:D3')));
-  tasks.getRange('R2:R2000').setDataValidation(list(set.getRange('B4:I4')));
-  tasks.getRange('S2:S2000').setDataValidation(list(set.getRange('B5:H5')));
-
-  const hr = ss.getSheetByName('HR Applications');
-  hr.getRange('K2:K2000').setDataValidation(list(set.getRange('B6:I6')));
-  hr.getRange('Q2:Q2000').setDataValidation(list(set.getRange('B5:H5')));
-  hr.getRange('U2:U2000').setDataValidation(list(set.getRange('B4:I4')));
-
-  const li = ss.getSheetByName('LinkedIn Jobs');
-  li.getRange('F2:F2000').setDataValidation(list(set.getRange('B7:D7')));
-  li.getRange('P2:P2000').setDataValidation(list(set.getRange('B2:J2')));
-  li.getRange('U2:U2000').setDataValidation(list(set.getRange('B3:D3')));
-
-  const ev = ss.getSheetByName('Events');
-  ev.getRange('K2:K2000').setDataValidation(list(set.getRange('B9:D9')));
-  ev.getRange('L2:L2000').setDataValidation(list(set.getRange('B8:E8')));
-}
-
-function setupFormatting_(ss) {
-  Object.keys(TABLES).forEach(name => {
-    const sh = ss.getSheetByName(name);
-    const cols = sh.getLastColumn();
-    sh.getRange(1,1,1,cols).setFontWeight('bold');
-    sh.getRange(1,1,sh.getMaxRows(),cols).setVerticalAlignment('middle');
-    sh.autoResizeColumns(1,cols);
-  });
-  ['Tasks','HR Applications','LinkedIn Jobs','HR Emails','Events','Contacts'].forEach(name => {
-    const sh = ss.getSheetByName(name);
-    sh.getRange(2,1,Math.max(sh.getMaxRows()-1,1),sh.getLastColumn()).setWrap(true);
-  });
-}
-
-function onEdit(e) {
-  if (!e || e.range.getRow() < 2) return;
-  const sh = e.range.getSheet(), row = e.range.getRow(), name = sh.getName();
-  if (!TABLES[name]) return;
-  const id = sh.getRange(row,1);
-  if (!id.getValue()) id.setValue(makeId_(name,row));
-  const now = new Date();
-  const createdCol = TABLES[name].indexOf('Created At') + 1;
-  const updatedCol = TABLES[name].indexOf('Updated At') + 1;
-  if (createdCol && !sh.getRange(row,createdCol).getValue()) sh.getRange(row,createdCol).setValue(now);
-  if (updatedCol) sh.getRange(row,updatedCol).setValue(now);
-  if (name === 'Tasks' && sh.getRange(row,2).getValue()) {
-    sh.getRange(row,3).setFormula(`=TEXT(B${row},"dddd")`);
-    sh.getRange(row,4).setFormula(`=TEXT(B${row},"mmmm")`);
-    sh.getRange(row,5).setFormula(`=YEAR(B${row})`);
-  }
-  if (name === 'Events' && sh.getRange(row,2).getValue()) {
-    sh.getRange(row,3).setFormula(`=TEXT(B${row},"dddd")`);
-    sh.getRange(row,4).setFormula(`=TEXT(B${row},"mmmm")`);
-  }
-}
-
-function makeId_(name,row) {
-  const prefix = {Tasks:'TASK', 'HR Applications':'APP', 'LinkedIn Jobs':'LI', 'HR Emails':'MAIL', Events:'EVENT', Contacts:'CONTACT'}[name] || 'ITEM';
-  return prefix + '-' + Utilities.formatString('%05d', row-1);
-}
-
-function setupReminderTrigger_() {
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction()==='sendDailyReminder').forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('sendDailyReminder').timeBased().everyDays(1).atHour(8).create();
-}
-
-function sendDailyReminder() {
-  const ss = SpreadsheetApp.getActive();
-  const sh = ss.getSheetByName('Tasks');
-  if (!sh || sh.getLastRow()<2) return;
-  const rows = sh.getRange(2,1,sh.getLastRow()-1,22).getValues();
-  const today = new Date();
-  const items = [];
-  rows.forEach(r => {
-    const status=r[13], deadline=r[15], follow=r[16], title=r[6], company=r[7];
-    if (status === 'Completed') return;
-    if (deadline instanceof Date && sameDay_(deadline,today)) items.push('Deadline today: '+title+(company?' — '+company:''));
-    if (follow instanceof Date && sameDay_(follow,today)) items.push('Follow-up today: '+title+(company?' — '+company:''));
-  });
-  if (!items.length) return;
-  MailApp.sendEmail({to:Session.getEffectiveUser().getEmail(),subject:'Career Tracker — Today\'s Tasks',body:'Your reminders:\n\n'+items.join('\n')});
-}
-
-function sameDay_(a,b) {
-  return Utilities.formatDate(a,TZ,'yyyy-MM-dd') === Utilities.formatDate(b,TZ,'yyyy-MM-dd');
-}
-
-function addLinkedInJob(company,title,location,url,recruiterName,recruiterLinkedIn) {
-  const sh=SpreadsheetApp.getActive().getSheetByName('LinkedIn Jobs');
-  sh.appendRow(['',new Date(),company,title,location,'','Full Time','','',url,recruiterName,recruiterLinkedIn,'','No','','Pending','Waiting','','Pending','', 'High','',new Date(),new Date()]);
-}
-
-function addHRApplication(company,role,hrName,hrEmail,jobUrl,source) {
-  const sh=SpreadsheetApp.getActive().getSheetByName('HR Applications');
-  sh.appendRow(['',new Date(),company,role,'Full Time','',hrName,hrEmail,'','',source||'LinkedIn',jobUrl||'','Yes','No','No','','Waiting','','','','Pending','','','', 'Wait for HR response','',new Date(),new Date()]);
-}
-
-function addEvent(eventName,organizer,eventDate,location,website) {
-  const sh=SpreadsheetApp.getActive().getSheetByName('Events');
-  sh.appendRow(['',eventDate,'','',eventName,organizer,'','','Pending','Pending','Pending','Going',location,'','',website||'','','','','','Pending','No','', '',new Date(),new Date()]);
-}
-
-function addTask(title,type,date,priority,deadline,followUp,company) {
-  const sh=SpreadsheetApp.getActive().getSheetByName('Tasks');
-  sh.appendRow(['',date||new Date(),'','','',type||'Other',title,company||'','','','','','','Pending',priority||'Medium',deadline||'',followUp||'','Pending','Waiting','',new Date(),new Date()]);
-}
-
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🚀 Career Tracker').addItem('Setup / Reset','setupCareerTracker').addItem('Send Reminder Now','sendDailyReminder').addToUi();
-}
+function doGet(){return HtmlService.createTemplateFromFile('Index').evaluate().setTitle('Saurabh TaskManager').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);}
+function setupCareerTracker(){const ss=SpreadsheetApp.getActive();Object.keys(TABLES).forEach(n=>createTable_(ss,n,TABLES[n]));createSettings_(ss);createDashboard_(ss);setupValidations_(ss);setupFormatting_(ss);setupReminderTrigger_();SpreadsheetApp.getUi().alert('Saurabh TaskManager is ready.');}
+function createTable_(ss,n,h){let s=ss.getSheetByName(n)||ss.insertSheet(n);if(s.getFilter())s.getFilter().remove();s.clear();s.getRange(1,1,1,h.length).setValues([h]).setFontWeight('bold');s.setFrozenRows(1);s.getRange(1,1,1,h.length).createFilter();}
+function createSettings_(ss){let s=ss.getSheetByName('Settings')||ss.insertSheet('Settings');s.clear();[['TASK TYPES','Application','Follow Up','Interview','Event','Meeting','LinkedIn','Content','SEO','AI','Other'],['STATUS','Pending','In Progress','Completed','Accepted','Rejected','Scheduled','Cancelled','Waiting','Shortlisted'],['PRIORITY','High','Medium','Low'],['RESULT','Selected','Rejected','Shortlisted','No Response','Attended','Missed','Completed','Pending'],['HR RESPONSE','Waiting','Received','Interested','Not Interested','Need Follow Up','No Reply','Declined'],['SOURCE','LinkedIn','Company Website','Naukri','Indeed','Referral','Email','Other'],['WORK MODE','Remote','Hybrid','Onsite'],['ATTENDANCE','Going','Not Going','Attended','Missed'],['ACCEPTANCE','Accepted','Rejected','Pending']].forEach((r,i)=>s.getRange(i+1,1,1,r.length).setValues([r]));}
+function createDashboard_(ss){let s=ss.getSheetByName('Dashboard')||ss.insertSheet('Dashboard');s.clear();s.getRange('A1:B1').merge().setValue('SAURABH TASKMANAGER DASHBOARD').setFontSize(18).setFontWeight('bold');s.getRange('A3:B16').setValues([['Metric','Value'],['Total Tasks','=COUNTA(Tasks!A2:A)'],['Pending Tasks','=COUNTIF(Tasks!N2:N,"Pending")'],['Completed Tasks','=COUNTIF(Tasks!N2:N,"Completed")'],['HR Applications','=COUNTA(\'HR Applications\'!A2:A)'],['LinkedIn Jobs','=COUNTA(\'LinkedIn Jobs\'!A2:A)'],['LinkedIn Applied','=COUNTIF(\'LinkedIn Jobs\'!N2:N,"Yes")'],['Selected','=COUNTIF(\'HR Applications\'!U2:U,"Selected")'],['Rejected','=COUNTIF(\'HR Applications\'!U2:U,"Rejected")'],['Shortlisted','=COUNTIF(\'HR Applications\'!U2:U,"Shortlisted")'],['Events','=COUNTA(Events!A2:A)'],['Accepted Events','=COUNTIF(Events!K2:K,"Accepted")'],['Today Tasks','=COUNTIF(Tasks!B2:B,TODAY())'],['Today Follow-ups','=COUNTIF(Tasks!Q2:Q,TODAY())']]);}
+function setupValidations_(ss){const s=ss.getSheetByName('Settings');const l=r=>SpreadsheetApp.newDataValidation().requireValueInRange(r,true).setAllowInvalid(true).build();let t=ss.getSheetByName('Tasks');t.getRange('F2:F2000').setDataValidation(l(s.getRange('B1:K1')));t.getRange('N2:N2000').setDataValidation(l(s.getRange('B2:J2')));t.getRange('O2:O2000').setDataValidation(l(s.getRange('B3:D3')));t.getRange('R2:R2000').setDataValidation(l(s.getRange('B4:I4')));t.getRange('S2:S2000').setDataValidation(l(s.getRange('B5:H5')));let h=ss.getSheetByName('HR Applications');h.getRange('K2:K2000').setDataValidation(l(s.getRange('B6:I6')));h.getRange('Q2:Q2000').setDataValidation(l(s.getRange('B5:H5')));h.getRange('U2:U2000').setDataValidation(l(s.getRange('B4:I4')));let j=ss.getSheetByName('LinkedIn Jobs');j.getRange('F2:F2000').setDataValidation(l(s.getRange('B7:D7')));j.getRange('P2:P2000').setDataValidation(l(s.getRange('B2:J2')));j.getRange('U2:U2000').setDataValidation(l(s.getRange('B3:D3')));let e=ss.getSheetByName('Events');e.getRange('K2:K2000').setDataValidation(l(s.getRange('B9:D9')));e.getRange('L2:L2000').setDataValidation(l(s.getRange('B8:E8')));}
+function setupFormatting_(ss){Object.keys(TABLES).forEach(n=>{let s=ss.getSheetByName(n);s.getRange(1,1,1,s.getLastColumn()).setFontWeight('bold');s.autoResizeColumns(1,s.getLastColumn());});}
+function onEdit(e){if(!e||e.range.getRow()<2)return;let s=e.range.getSheet(),n=s.getName(),r=e.range.getRow();if(!TABLES[n])return;let id=s.getRange(r,1);if(!id.getValue())id.setValue(makeId_(n,r));let now=new Date(),c=TABLES[n].indexOf('Created At')+1,u=TABLES[n].indexOf('Updated At')+1;if(c&&!s.getRange(r,c).getValue())s.getRange(r,c).setValue(now);if(u)s.getRange(r,u).setValue(now);if(n==='Tasks'&&s.getRange(r,2).getValue()){s.getRange(r,3).setFormula(`=TEXT(B${r},"dddd")`);s.getRange(r,4).setFormula(`=TEXT(B${r},"mmmm")`);s.getRange(r,5).setFormula(`=YEAR(B${r})`);}if(n==='Events'&&s.getRange(r,2).getValue()){s.getRange(r,3).setFormula(`=TEXT(B${r},"dddd")`);s.getRange(r,4).setFormula(`=TEXT(B${r},"mmmm")`);}}
+function makeId_(n,r){let p={Tasks:'TASK','HR Applications':'APP','LinkedIn Jobs':'LI','HR Emails':'MAIL',Events:'EVENT',Contacts:'CONTACT'}[n]||'ITEM';return p+'-'+Utilities.formatString('%05d',r-1);}
+function getRows(a){let n=a.table,h=TABLES[n],s=SpreadsheetApp.getActive().getSheetByName(n);if(!s)return[];let lr=s.getLastRow();if(lr<2)return[];return s.getRange(2,1,lr-1,h.length).getValues().map(row=>Object.fromEntries(h.map((x,i)=>[x,formatValue_(row[i])] )));}
+function formatValue_(v){if(v instanceof Date)return Utilities.formatDate(v,TZ,'yyyy-MM-dd HH:mm');return v??'';}
+function addRow(a){let n=a.table,h=TABLES[n],s=SpreadsheetApp.getActive().getSheetByName(n);if(!s)throw Error('Run setupCareerTracker() first.');let d=a.data||{},row=h.map(x=>d[x]??'');row[0]=makeId_(n,s.getLastRow()+1);if(h.includes('Created At'))row[h.indexOf('Created At')]=new Date();if(h.includes('Updated At'))row[h.indexOf('Updated At')]=new Date();s.appendRow(row);return row[0];}
+function deleteRow(a){let s=SpreadsheetApp.getActive().getSheetByName(a.table),h=TABLES[a.table],idCol=1;if(!s)return false;let vals=s.getRange(2,idCol,Math.max(1,s.getLastRow()-1),1).getValues();for(let i=0;i<vals.length;i++)if(String(vals[i][0])===String(a.id)){s.deleteRow(i+2);return true;}return false;}
+function getDashboard(){let ss=SpreadsheetApp.getActive(),count=n=>{let s=ss.getSheetByName(n);return s?Math.max(0,s.getLastRow()-1):0};let val=(n,c,x)=>{let s=ss.getSheetByName(n);return s? s.getRange(2,c,Math.max(1,s.getLastRow()-1),1).getValues().flat().filter(v=>String(v)===x).length:0};return {'Tasks':count('Tasks'),'Pending Tasks':val('Tasks',14,'Pending'),'Completed Tasks':val('Tasks',14,'Completed'),'HR Applications':count('HR Applications'),'LinkedIn Jobs':count('LinkedIn Jobs'),'Jobs Applied':val('LinkedIn Jobs',14,'Yes'),'Selected':val('HR Applications',21,'Selected'),'Shortlisted':val('HR Applications',21,'Shortlisted'),'Events':count('Events'),'Contacts':count('Contacts'),'HR Emails':count('HR Emails'),'Due Today':dueToday_()};}
+function dueToday_(){let s=SpreadsheetApp.getActive().getSheetByName('Tasks');if(!s||s.getLastRow()<2)return 0;let today=Utilities.formatDate(new Date(),TZ,'yyyy-MM-dd');return s.getRange(2,17,s.getLastRow()-1,1).getValues().flat().filter(v=>v instanceof Date&&Utilities.formatDate(v,TZ,'yyyy-MM-dd')===today).length;}
+function setupReminderTrigger_(){ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='sendDailyReminder').forEach(t=>ScriptApp.deleteTrigger(t));ScriptApp.newTrigger('sendDailyReminder').timeBased().everyDays(1).atHour(8).create();}
+function sendDailyReminder(){let s=SpreadsheetApp.getActive().getSheetByName('Tasks');if(!s||s.getLastRow()<2)return;let rows=s.getRange(2,1,s.getLastRow()-1,22).getValues(),today=new Date(),items=[];rows.forEach(r=>{if(r[13]==='Completed')return;if(r[15] instanceof Date&&sameDay_(r[15],today))items.push('Deadline: '+r[6]+' — '+r[7]);if(r[16] instanceof Date&&sameDay_(r[16],today))items.push('Follow-up: '+r[6]+' — '+r[7]);});if(items.length)MailApp.sendEmail({to:Session.getEffectiveUser().getEmail(),subject:'Saurabh TaskManager — Today',body:items.join('\n')});}
+function sameDay_(a,b){return Utilities.formatDate(a,TZ,'yyyy-MM-dd')===Utilities.formatDate(b,TZ,'yyyy-MM-dd');}
+function addTask(title,type,date,priority,deadline,followUp,company){return addRow({table:'Tasks',data:{'Task Title':title,'Task Type':type||'Other','Date':date||new Date(),'Priority':priority||'Medium','Deadline':deadline||'','Follow Up Date':followUp||'','Company / Event':company||''}});}
+function addHRApplication(company,role,hrName,hrEmail,jobUrl,source){return addRow({table:'HR Applications',data:{Company:company,'Job Role':role,'HR Name':hrName,'HR Email':hrEmail,'Job URL':jobUrl||'','Application Source':source||'LinkedIn','Application Date':new Date(),'Job Type':'Full Time','Resume Sent':'Yes','Mail Sent':'No','HR Response':'Waiting','Result':'Pending'}});}
+function addLinkedInJob(company,title,location,url,recruiterName,recruiterLinkedIn){return addRow({table:'LinkedIn Jobs',data:{Company:company,'Job Title':title,Location:location,'LinkedIn Job URL':url,'Recruiter Name':recruiterName||'','Recruiter LinkedIn':recruiterLinkedIn||'','Date Found':new Date(),Applied:'No','Application Status':'Pending','HR Response':'Waiting','Priority':'High'}});}
+function addEvent(name,organizer,date,location,website){return addRow({table:'Events',data:{'Event Name':name,Organizer:organizer,'Event Date':date,Location:location,Website:website||'',Acceptance:'Pending',Attendance:'Going'}});}
+function createCalendarEvent(title,start,end,description){let c=CalendarApp.getDefaultCalendar();return c.createEvent(title,new Date(start),new Date(end),{description:description||''}).getId();}
+function sendEmail(to,subject,body){if(!to)throw Error('Recipient email required');MailApp.sendEmail({to,subject,body});return true;}
+function seoChecklist(){return ['Title 50–60 characters','Meta description compelling and intent aligned','One clear H1','Search intent satisfied','Primary keyword used naturally','Semantic/internal links added','Images compressed + descriptive alt text','Canonical/indexation checked','Schema where appropriate','Core Web Vitals reviewed'];}
+function aiPromptTemplates(){return {content:'Create an SEO-first content brief with intent, audience, entities, outline, FAQs and internal-link opportunities.',hr:'Write a concise professional HR application/follow-up email using the supplied role and company details.',analytics:'Analyze SEO KPI movement, identify likely causes, risks and three prioritized next actions.'};}
+function onOpen(){SpreadsheetApp.getUi().createMenu('🚀 Saurabh TaskManager').addItem('Setup / Reset','setupCareerTracker').addItem('Send Reminder Now','sendDailyReminder').addItem('SEO Checklist','showSeoChecklist').addToUi();}
+function showSeoChecklist(){SpreadsheetApp.getUi().alert(seoChecklist().join('\n'));}
