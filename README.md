@@ -1,29 +1,39 @@
-# Career Task & HR Tracker
+# 🚀 Saurabh TaskManager
 
-A Google Apps Script + Google Sheets backend designed for AppSheet.
+All-in-one personal command center for SEO, AI Marketing, Career/HR applications, LinkedIn jobs, events, contacts and productivity.
 
-## Features
+## Modules
 
-- Daily and monthly task tracking
-- HR job applications
-- LinkedIn job tracking
-- HR email tracking and follow-ups
-- Interviews and results
-- Events with accept/reject/attendance status
-- Contacts and recruiter tracking
-- Dashboard metrics
-- Dropdown validation
-- Automatic IDs and timestamps
-- Daily reminder email
-- AppSheet-ready tables
+1. 🔎 SEO Toolkit — keyword, content, audit and optimization workspaces
+2. 💼 Job + HR Tracker — applications, recruiters, interviews, follow-ups and results
+3. 🤖 AI Tools Hub — provider-neutral prompt workspaces for content, HR and analytics
+4. 📊 Analytics Dashboard — live productivity and career metrics
+5. 🌐 Personal TaskManager — responsive web dashboard branded for Saurabh
+
+## Files
+
+- `Code.gs` — Apps Script backend, Sheets database, CRUD API, dashboard metrics, reminders, Calendar and email helpers
+- `Index.html` — responsive web application
+- `appsscript.json` — Apps Script manifest
 
 ## Setup
 
 1. Create a Google Sheet.
 2. Open **Extensions → Apps Script**.
-3. Copy `Code.gs` into the Apps Script project.
-4. Run `setupCareerTracker()` once and authorize the script.
-5. Open AppSheet and select the Google Sheet as the data source.
-6. Add the generated tables as AppSheet tables/views.
+3. Add `Code.gs`, `Index.html` and `appsscript.json` from this repository.
+4. Run `setupCareerTracker()` once and authorize permissions.
+5. Reload the Sheet and use **🚀 Saurabh TaskManager → Setup / Reset** when needed.
+6. Deploy as **Web app** from Apps Script.
+7. For AppSheet, use the generated Google Sheet as the data source.
 
-> LinkedIn is tracked through job/recruiter URLs and application status. This project does not scrape LinkedIn or automatically submit applications.
+## Tables
+
+Tasks, HR Applications, LinkedIn Jobs, HR Emails, Events, Contacts, Settings and Dashboard.
+
+## Automation
+
+Automatic IDs, timestamps, validation dropdowns, daily reminder email, dashboard metrics, table CRUD, search/filter, Calendar event helper and email helper.
+
+## Security
+
+No API keys are hard-coded. AI provider credentials should be stored in Apps Script Properties or a secure backend. The project does not scrape LinkedIn or automatically submit applications.
